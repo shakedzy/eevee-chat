@@ -2,6 +2,7 @@ import gradio as gr
 from typing import List, Tuple, Generator, Set
 from .chatbot import Chatbot
 from .settings import Settings
+from .utils import path_to_resource
 from .package_types import Framework
 
 
@@ -55,7 +56,9 @@ class UI:
         with gr.Blocks(title="Eevee") as ui:
             with gr.Row():
                 with gr.Column(scale=10):
-                    gr.Markdown("# Eevee")
+                    with gr.Row():
+                        #gr.Image(path_to_resource("eevee.png"), container=False, show_download_button=False, show_label=False, min_width=1, width=10)
+                        gr.Markdown("# Eevee Chat")
                 with gr.Column(scale=1):
                     new_chat = gr.Button("New Chat")
             
