@@ -1,3 +1,3 @@
 # eevee
 
-Comng soon 💪
+Coming soon 💪
