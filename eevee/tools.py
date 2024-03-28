@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
 from .color_logger import get_logger
 from .settings import Settings
-from .package_types import ToolsDefType
+from ._types import ToolsDefType
 
 
 def handle_tool_error(e: Exception) -> None:
@@ -55,9 +55,9 @@ def web_search(query: str, max_results: int = 10) -> str:
         return "No results"
 
 
-def surf(url: str) -> str:
+def visit_website(url: str) -> str:
     """
-    Surfs to the provided URL and returns a simple version of the page text. Images and styling are excluded.
+    Goes to the provided URL and returns a simple version of the page text. Images and styling are excluded.
     """
     try:
         headers = {'User-Agent': Settings().web.user_agent}
@@ -83,5 +83,5 @@ def surf(url: str) -> str:
 tools_params_definitions: ToolsDefType = {
     web_search: [("query", {"type": "string", "description": "The query to search on the web"}, True),
                  ("max_results", {"type": "number", "description": "Maximal number of results to retrieve. Must be between 1 and 10, default is 10."}, False)],
-    surf: [("url", {"type": "string", "description": "The URL of the page to scrape"}, True)],
+    visit_website: [("url", {"type": "string", "description": "The URL of the page to scrape"}, True)],
 }

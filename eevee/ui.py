@@ -1,9 +1,11 @@
+import os
+import pathlib
 import gradio as gr
 from typing import List, Tuple, Generator, Set
 from .chatbot import Chatbot
 from .settings import Settings
 from .utils import path_to_resource
-from .package_types import Framework
+from ._types import Framework
 
 
 class UI:
@@ -11,10 +13,11 @@ class UI:
         self.ui: gr.Blocks | None = None
         self.chatbot = chatbot
         self.available_frameworks = available_frameworks
+        self._generate_text = True
 
     def __enter__(self) -> gr.Blocks:
         self.ui = self._build_ui()
-        self.ui.launch(favicon_path=None, inbrowser=True, show_error=True)
+        self.ui.launch(favicon_path=path_to_resource("eevee_50.png"), inbrowser=True, show_error=True)
         return self.ui
 
     def __exit__(self, *args) -> None:
@@ -27,38 +30,85 @@ class UI:
             models: List[str] = Settings().models[framework]
             available_models += models
         return available_models
+    
+    def _stop_text_generation(self) -> None:
+        self._generate_text = False
 
     def _add_user_message_to_chat(self, prompt: str, history: List[List[str | None]]) -> Tuple[str, List[List[str | None]]]:
         return '', history + [[prompt, None]]
 
     def _add_bot_message_to_chat(self, history: List[List[str | None]], model: str, temperature: float, as_json: bool, system_prompt: str) -> Generator:
+        self._generate_text = True
         if as_json:
             generator = self.chatbot.get_json_response(history[-1][0] or '', system_prompt=system_prompt, model=model, temperature=temperature)
         else:
             generator = self.chatbot.get_stream_response(history[-1][0] or '', system_prompt=system_prompt, model=model, temperature=temperature)
         
-        for token in generator:
-            if token.startswith(self.chatbot.TOOL_TOKEN):
-                gr.Info(f"Running tool: {token.strip(self.chatbot.TOOL_TOKEN)}")
+        for chunk in generator:
+            if not self._generate_text:
+                break
+            if chunk.startswith(self.chatbot.INFO_TOKEN):
+                gr.Info(chunk.strip(self.chatbot.INFO_TOKEN))
+            elif chunk.startswith(self.chatbot.WARNING_TOKEN):
+                gr.Warning(chunk.strip(self.chatbot.WARNING_TOKEN))
             else:
                 if history[-1][1] is None:
                     history[-1][1] = ''
-                history[-1][1] += token
+                history[-1][1] += chunk
                 yield history 
 
+    def _undo_last_message(self, history: List[List[str]]) -> List[List[str]]:
+        self._generate_text = False
+        history.pop()
+        self.chatbot.delete_last_interaction()
+        return history
+
+    def _start_new_chat(self) -> Tuple[str, List]:
+        self._generate_text = False
+        self.chatbot.reset_chat()
+        return '', []
+
+    def _save_chat(self) -> None:
+        self.chatbot.export_chat()
+
+    def _load_chat(self, filename: str) -> Tuple[None, List[List[str]]]:
+        history: List[List[str]] = list()
+        self.chatbot.load_chat(file_path=os.path.join(self.chatbot.saved_chats_dir, filename))
+        messages = self.chatbot.get_displayed_messages()
+        for message in messages:
+            if message.role == 'user':
+                history.append([message.content or '', ''])
+            elif message.role == 'assistant':
+                history[-1][1] = message.content or ''
+            else:
+                raise ValueError(f"Can't load message with role {message.role}")
+        return None, history
+    
+    def _delete_chat_file(self, filename: str) -> None:
+        file_path = os.path.join(self.chatbot.saved_chats_dir, filename)
+        pathlib.Path.unlink(file_path)  # type: ignore
+
     def _build_ui(self) -> gr.Blocks:
+        scrollable_checkbox_group_css = """
+            .files_list {
+                height: 35vh;
+                min-height: 150px;
+                width: 100%;
+                overflow-x: auto !important;
+                overflow-y: auto !important;
+                scrollbar-width: thin !important;
+            }  
+        """
         available_models = self._get_list_of_models()
         preferred_model = Settings().defaults.model
         if preferred_model not in available_models:
             preferred_model = available_models[0]
         preferred_temperature = min(1., max(0., Settings().defaults.temperature))
 
-        with gr.Blocks(title="Eevee") as ui:
+        with gr.Blocks(title="Eevee Chat", css=scrollable_checkbox_group_css) as ui:
             with gr.Row():
                 with gr.Column(scale=10):
-                    with gr.Row():
-                        #gr.Image(path_to_resource("eevee.png"), container=False, show_download_button=False, show_label=False, min_width=1, width=10)
-                        gr.Markdown("# Eevee Chat")
+                    gr.Markdown(f"# 💬 Eevee Chat")
                 with gr.Column(scale=1):
                     new_chat = gr.Button("New Chat")
             
@@ -70,8 +120,12 @@ class UI:
                             system_prompt = gr.TextArea(value="You are a helpful AI assistance named Bruno, and your task is to assist the user with all its requests in the best way possible", container=False, interactive=True, lines=10)
                         temperature = gr.Slider(label="Temperature", minimum=0., maximum=1., step=.01, value=preferred_temperature)
                         force_json = gr.Checkbox(label="Force JSON", value=False, interactive=True)
+                    gr.Markdown("Not all models support all options, see documentation for more information")
                     gr.Markdown("------")
-                    load_chat = gr.UploadButton("Load Chat")
+                    with gr.Group():
+                        saved_chats = gr.Radio(label="Saved Chats", choices=self.chatbot.list_saved_chats(), elem_classes="files_list", value=None)  # type: ignore
+                        load_chat = gr.Button("Load")
+                        delete_chat = gr.Button("Delete", variant='stop')
 
                 with gr.Column(scale=10):
                     chat = gr.Chatbot(show_label=False, show_copy_button=True, height='80vh')
@@ -84,13 +138,36 @@ class UI:
             submit.click(
                 self._add_user_message_to_chat, [msg, chat], [msg, chat]
             ).then(
+                lambda: (gr.update(visible=True), gr.update(visible=False)), None, [stop, submit]
+            ).then(
                 self._add_bot_message_to_chat, [chat, model, temperature, force_json, system_prompt], chat
+            ).then(
+                self._save_chat
+            ).then(
+                lambda: (gr.update(visible=True), gr.update(visible=False)), None, [submit, stop]
+            ).then(
+                lambda: gr.update(choices=self.chatbot.list_saved_chats()), None, saved_chats
             )
+
             msg.submit(
                 self._add_user_message_to_chat, [msg, chat], [msg, chat]
             ).then(
+                lambda: (gr.update(visible=True), gr.update(visible=False)), None, [stop, submit]
+            ).then(
                 self._add_bot_message_to_chat, [chat, model, temperature, force_json, system_prompt], chat
+            ).then(
+                self._save_chat
+            ).then(
+                lambda: (gr.update(visible=True), gr.update(visible=False)), None, [submit, stop]
+            ).then(
+                lambda: gr.update(choices=self.chatbot.list_saved_chats()), None, saved_chats
             )
+
+            stop.click(self._stop_text_generation)
+            undo_last.click(self._undo_last_message, chat, chat).then(self._save_chat)
+            new_chat.click(self._start_new_chat, None, [msg, chat])
+            load_chat.click(self._start_new_chat, None, [msg, chat]).then(self._load_chat, saved_chats, [saved_chats, chat])
+            delete_chat.click(self._delete_chat_file, saved_chats, None).then(lambda: gr.update(choices=self.chatbot.list_saved_chats()), None, saved_chats)
 
         return ui
     

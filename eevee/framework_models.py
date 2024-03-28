@@ -1,7 +1,7 @@
 import os
 from typing import get_args, Set, Dict, List
 from .settings import Settings
-from .package_types import Framework
+from ._types import Framework
 
 
 def get_available_frameworks() -> Set[Framework]:

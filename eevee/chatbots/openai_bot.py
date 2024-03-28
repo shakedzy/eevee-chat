@@ -1,14 +1,14 @@
 import json
 import itertools 
 from openai import OpenAI
-from typing import Generator, List
+from typing import Generator, List, Dict, Any
 from .bot_interface import Bot
 from ..messages import ToolCall, Messages
-from ..package_types import JSON
 
 
 class OpenAIBot(Bot):
     def __init__(self) -> None:
+        super().__init__()
         self.client = OpenAI()
 
     def _tool_calls_from_chunks(self, chunks) -> Generator:
@@ -34,7 +34,7 @@ class OpenAIBot(Bot):
         
         yield [ToolCall(call_id=tool['id'], function=tool['function'], arguments=json.loads(tool['arguments'])) for tool in tool_calls]
 
-    def get_streaming_response(self, model: str, temperature: float, messages: Messages, tools: List[JSON]) -> Generator:
+    def get_streaming_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator[str | List[ToolCall], None, None]:
         completion = self.client.chat.completions.create(
             model=model,
             temperature=temperature,
@@ -70,7 +70,7 @@ class OpenAIBot(Bot):
                     yield token
 
     
-    def get_json_response(self, model: str, temperature: float, messages: Messages, tools: List[JSON]) -> str | List[ToolCall]:
+    def get_json_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator[str | List[ToolCall], None, None]:
         message = self.client.chat.completions.create(
             model=model,
             temperature=temperature,
@@ -83,8 +83,8 @@ class OpenAIBot(Bot):
             tool_calls: List[ToolCall] = list()
             for tool_call in message.tool_calls:
                 tool_calls.append(ToolCall(call_id=tool_call.id, function=tool_call.function.name, arguments=json.loads(tool_call.function.arguments)))
-            return tool_calls
+            yield tool_calls
         elif message.content is None:
             raise RuntimeError('Got empty completion!')
         else:
-            return message.content       
+            yield message.content       
