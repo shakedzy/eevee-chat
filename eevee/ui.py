@@ -29,11 +29,11 @@ class UI:
         if self.ui:
             self.ui.close()
 
-    def _get_list_of_models(self) -> List[str]:
-        available_models: List[str] = list()
+    def _get_list_of_models(self) -> List[Tuple[Framework, str]]:
+        available_models: List[Tuple[Framework, str]] = list()
         for framework in self.available_frameworks:
             models: List[str] = Settings().models[framework]
-            available_models += models
+            available_models += [(framework, model) for model in models]
         return available_models
     
     def _stop_text_generation(self) -> None:
@@ -114,6 +114,15 @@ class UI:
     def _list_saved_chats(self) -> List[str]:
         saved_chats = self.chatbot.list_saved_chats()
         return [self._title_and_time_to_chat_display_name(title, time) for (title, time) in saved_chats]
+    
+    def _display_name_of_framework(self, framework: Framework) -> str:
+        match framework:
+            case 'openai':
+                return 'OpenAI'
+            case 'deepseek':
+                return 'DeepSeek'
+            case _:
+                return framework.capitalize()
 
     def _build_ui(self) -> gr.Blocks:
         scrollable_checkbox_group_css = """
@@ -127,12 +136,14 @@ class UI:
             }  
         """
         available_models = self._get_list_of_models()
+        available_models = [(f'{self._display_name_of_framework(framework)}: {model}', model) for (framework, model) in available_models]
+        available_models = sorted(available_models, key=lambda t: t[0])
         preferred_model = Settings().defaults.model
-        if preferred_model not in available_models:
-            preferred_model = available_models[0]
+        if preferred_model not in [t[1] for t in available_models]:
+            preferred_model = available_models[0][1]
         preferred_temperature = min(1., max(0., Settings().defaults.temperature))
 
-        with gr.Blocks(title="Eevee Chat", css=scrollable_checkbox_group_css) as ui:
+        with gr.Blocks(title="Eevee Chat", css=scrollable_checkbox_group_css, theme=gr.themes.Base()) as ui:
             with gr.Row():
                 with gr.Column(scale=10):
                     gr.Markdown(f"# 💬 Eevee Chat")
@@ -148,7 +159,7 @@ class UI:
                         temperature = gr.Slider(label="Temperature", minimum=0., maximum=1., step=.01, value=preferred_temperature)
                         force_json = gr.Checkbox(label="Force JSON", value=False, interactive=True)
                     gr.Markdown("Not all models support all options, see documentation for more information")
-                    gr.Markdown("------")
+                    gr.Markdown("\n---\n")
                     with gr.Group():
                         saved_chats = gr.Radio(label="Saved Chats", choices=self._list_saved_chats(), elem_classes="files_list", value=None)  # type: ignore
                         load_chat = gr.Button("Load")

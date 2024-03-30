@@ -67,7 +67,7 @@ class SavedChat:
     
     @classmethod
     def filename_to_title_and_time(cls, filename: str) -> Tuple[str, datetime]:
-        stripped = filename.lstrip(cls.FILE_PREFIX).rstrip(cls.FILE_SUFFIX)
+        stripped = filename[len(cls.FILE_PREFIX):-len(cls.FILE_SUFFIX)]
         pieces = stripped.split('_')
         time = datetime.strptime(pieces[-1], cls.TIME_FORMAT)
         title = ' '.join(pieces[:-1])
