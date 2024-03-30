@@ -22,7 +22,7 @@ def handle_tool_error(e: Exception) -> None:
 
 def web_search(query: str, max_results: int = 10) -> str:
     """
-    Searched the web for the provided query, and returns the title, URL and description of the results.
+    Search the web for the provided query, and returns the title, URL and description of the results.
     Search results are separated by: =====
 
     Example of two search results:

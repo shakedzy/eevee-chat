@@ -9,6 +9,7 @@ class SavedChat:
     FILE_PREFIX = "chat_"
     FILE_SUFFIX = ".json"
     TIME_FORMAT = "%Y-%m-%d-%H-%M-%S"
+    MAX_NUM_OF_WORDS_IN_TITLE = 8
 
     def __init__(self, 
                  messages: Messages, 
@@ -29,7 +30,7 @@ class SavedChat:
             loaded_file: Dict[str, Any] = json.load(f)
         messages = Messages.from_dict(loaded_file['messages'])
         metadata = loaded_file.get('metadata', {})
-        pieces = file_path.split('/')[-1]
+        pieces = file_path.split('/')
         directory = '/'.join(pieces[:-1])
         title, start_time = cls.filename_to_title_and_time(pieces[-1])
         return cls(messages, start_time, directory, title, **metadata)
@@ -38,7 +39,11 @@ class SavedChat:
     def from_chat_title_and_time(cls, title: str, start_time: datetime, directory: str):
         filename = cls.title_and_time_to_filename(title, start_time)
         file_path = os.path.join(directory, filename)
-        return cls.from_chat_file(file_path)
+        with open(file_path, 'r') as f:
+            loaded_file: Dict[str, Any] = json.load(f)
+        messages = Messages.from_dict(loaded_file['messages'])
+        metadata = loaded_file.get('metadata', {})  
+        return cls(messages, start_time, directory, title, **metadata)
     
     @property
     def messages(self) -> Messages:
@@ -62,10 +67,11 @@ class SavedChat:
     
     @classmethod
     def filename_to_title_and_time(cls, filename: str) -> Tuple[str, datetime]:
-        stripped = filename.strip(cls.FILE_PREFIX).strip(cls.FILE_SUFFIX)
+        stripped = filename.lstrip(cls.FILE_PREFIX).rstrip(cls.FILE_SUFFIX)
         pieces = stripped.split('_')
         time = datetime.strptime(pieces[-1], cls.TIME_FORMAT)
         title = ' '.join(pieces[:-1])
+        print(filename, title, time)
         return title, time
     
     def from_metadata(self, key: str) -> Any:
@@ -76,9 +82,10 @@ class SavedChat:
         if not first_message_content:
             title = 'untitled'
         else:  
-            maxsplit = 11
+            maxsplit = self.MAX_NUM_OF_WORDS_IN_TITLE + 1
             first_words = first_message_content.split(' ', maxsplit=maxsplit)
             title = ' '.join(first_words[:maxsplit])
+            title = ''.join(e for e in title if (e.isalnum() or e==' '))
             if len(first_words) > maxsplit:
                 title += '...'
         return title

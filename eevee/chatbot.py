@@ -169,4 +169,5 @@ class Chatbot:
     
     def list_saved_chats(self) -> List[Tuple[str, datetime]]:
         chat_filenames = [f for f in os.listdir(self.saved_chats_dir) if os.path.isfile(os.path.join(self.saved_chats_dir, f)) and f.startswith(SavedChat.FILE_PREFIX) and f.endswith(SavedChat.FILE_SUFFIX)]
-        return [SavedChat.filename_to_title_and_time(filename) for filename in chat_filenames]
+        saved_list = [SavedChat.filename_to_title_and_time(filename) for filename in chat_filenames]
+        return sorted(saved_list, key=lambda t: t[1], reverse=True)

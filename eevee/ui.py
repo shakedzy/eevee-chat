@@ -11,7 +11,8 @@ from ._types import Framework
 
 
 class UI:
-    CHAT_FILE_TIME_FORMAT = "%d/%m/%Y"
+    CHAT_FILE_TIME_FORMAT = "%d/%m/%Y, %H:%M:%S"
+    MODEL_NAME_SEPARATOR = "\n\n🤖 "
 
     def __init__(self, chatbot: Chatbot, available_frameworks: Set[Framework]) -> None:
         self.ui: gr.Blocks | None = None
@@ -56,12 +57,11 @@ class UI:
             elif chunk.startswith(self.chatbot.WARNING_TOKEN):
                 gr.Warning(chunk.strip(self.chatbot.WARNING_TOKEN))
             else:
-                model_name_separator = "\n\n---\n"
                 chunk, model = chunk.split(self.chatbot.METADATA_TOKEN, 1)
                 current_message: str = history[-1][1] or ''
-                current_message = model_name_separator.join(current_message.split(model_name_separator)[:-1])
+                current_message = self.MODEL_NAME_SEPARATOR.join(current_message.split(self.MODEL_NAME_SEPARATOR)[:-1])
                 current_message += chunk
-                current_message += f'{model_name_separator}_{model}_'
+                current_message += f'{self.MODEL_NAME_SEPARATOR}_{model}_'
                 history[-1][1] = current_message
                 yield history 
 
@@ -82,7 +82,7 @@ class UI:
     def _display_name_to_title_and_time(self, display_name: str) -> Tuple[str, datetime]:
         pieces = display_name.split(' (')
         title = ' ('.join(pieces[:-1])
-        time = datetime.strptime(pieces[-1], self.CHAT_FILE_TIME_FORMAT)
+        time = datetime.strptime(pieces[-1][:-1], self.CHAT_FILE_TIME_FORMAT)
         return title, time
 
     def _save_chat(self) -> None:
@@ -97,9 +97,12 @@ class UI:
             if message.role == 'user':
                 history.append([message.content or '', ''])
             elif message.role == 'assistant':
-                history[-1][1] = message.content or ''
+                if message.content:
+                    history[-1][1] = message.content + (f'{self.MODEL_NAME_SEPARATOR}_{message.model}_' if message.model else '')
+                else:
+                    history[-1][1] = ''
             else:
-                raise ValueError(f"Can't load message with role {message.role}")
+                raise ValueError(f"Can't display message with role {message.role}")
         return None, history
     
     def _delete_chat_file(self, display_name: str) -> None:
@@ -115,7 +118,7 @@ class UI:
     def _build_ui(self) -> gr.Blocks:
         scrollable_checkbox_group_css = """
             .files_list {
-                height: 35vh;
+                height: 30vh;
                 min-height: 150px;
                 width: 100%;
                 overflow-x: auto !important;

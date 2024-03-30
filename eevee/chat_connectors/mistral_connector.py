@@ -33,7 +33,7 @@ class MistralConnector(Connector):
 
         chunk = None
         for chunk in response:
-            if chunk.choices[0].delta.content is not None or chunk.choices[0].delta.tool_calls is not None:  # type: ignore
+            if chunk.choices[0].delta.content or chunk.choices[0].delta.tool_calls is not None:  # type: ignore
                 break
         
         if chunk is None: raise RuntimeError('Got empty completion!')
