@@ -71,7 +71,6 @@ class SavedChat:
         pieces = stripped.split('_')
         time = datetime.strptime(pieces[-1], cls.TIME_FORMAT)
         title = ' '.join(pieces[:-1])
-        print(filename, title, time)
         return title, time
     
     def from_metadata(self, key: str) -> Any:
