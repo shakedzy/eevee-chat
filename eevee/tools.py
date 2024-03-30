@@ -1,12 +1,19 @@
 import re
+import os
 import inspect
 import requests
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
+from googleapiclient.discovery import build
+from typing import List, Tuple
 from .color_logger import get_logger
 from .settings import Settings
 from ._types import ToolsDefType
+
+
+_GOOGLE_SEARCH_API_KEY = os.environ.get('GOOGLE_SEARCH_API_KEY', None)
+_GOOGLE_SEARCH_CSE_ID = os.environ.get('GOOGLE_SEARCH_CSE_ID', None)
 
 
 def handle_tool_error(e: Exception) -> None:
@@ -31,28 +38,43 @@ def web_search(query: str, max_results: int = 10) -> str:
     if max_results < 1: max_results = 1
     elif max_results > 10: max_results = 10
 
-    ddgs = DDGS()
-    outputs = list()
-        
-    results = ddgs.text(query, max_results=max_results)
-
-    try:
+    def duckduckgo_search(query: str, max_results: int) -> List[Tuple[str, str, str]]:
+        results = []
+        ddgs = DDGS() 
+        results = ddgs.text(query, max_results=max_results)
         for result in tqdm(results):
             url = result['href']
             if url is None:
                 continue
             body = result['body']
             title = result['title'] or ''
-            outputs.append(f"Title: {title}\nURL: {url}\nDescription: {body}\n")
+            results.append((title, url, body))
+        return results
     
+    def google_search(query: str, max_results: int, api_key: str, cse_id: str) -> List[Tuple[str, str, str]]:
+        results = []
+        service = build("customsearch", "v1", developerKey=api_key)
+        response = service.cse().list(q=query, cx=cse_id, num=max_results).execute()
+        for result in tqdm(response['items']):
+            results.append((result['title'], result['link'], result['snippet']))
+        return results
+
+    try:
+        if _GOOGLE_SEARCH_API_KEY and _GOOGLE_SEARCH_CSE_ID:
+            get_logger().debug('Searching the web with Google')
+            results = google_search(query=query, max_results=max_results, api_key=_GOOGLE_SEARCH_API_KEY, cse_id=_GOOGLE_SEARCH_CSE_ID)
+        else:
+            get_logger().debug('Searching the web with DuckDuckGo')
+            results = duckduckgo_search(query=query, max_results=max_results)
+        
+        if results:
+            return '\n=====\n'.join(f"Title: {title}\nURL: {url}\nDescription: {body}\n" for (title, url, body) in results)
+        else:
+            return "No results"
+
     except Exception as e:
         handle_tool_error(e)
         return f"Error while searching the web: {e}"
-
-    if outputs:
-        return '\n=====\n'.join(outputs)
-    else:
-        return "No results"
 
 
 def visit_website(url: str) -> str:

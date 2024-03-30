@@ -3,11 +3,11 @@ import itertools
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ToolCall as MistralToolCall
 from typing import List, Generator, Dict, Any
-from .bot_interface import Bot
+from .connector_interface import Connector
 from ..messages import Messages, ToolCall
 
 
-class MistralBot(Bot):
+class MistralConnector(Connector):
     def __init__(self) -> None:
         self.supports_json_response = True
         self.client = MistralClient()

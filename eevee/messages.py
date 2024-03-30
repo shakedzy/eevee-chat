@@ -119,59 +119,64 @@ class Message:
                 return message
 
 
-class Messages:
-    _messages: List[Message] = list()
+class Messages(list[Message]):
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
 
-    def __init__(self) -> None:
-        pass
-
-    def __str__(self) -> str:
-        return str([str(m) for m in self._messages])
-    
-    def __len__(self) -> int:
-        return len(self._messages)
-    
-    def __getitem__(self, i: int) -> Message:
-        return self._messages[i]
-    
-    def __iter__(self) -> Generator[Message, None, None]:
-        yield from self._messages
+    @classmethod
+    def from_dict(cls, messages_as_dict: List[Dict[str, Any]]):
+        messages = cls()
+        for message in messages_as_dict:
+            tool_calls: List[ToolCall] = list()
+            if 'tool_calls' in message:
+                for tool_call in message['tool_calls']:
+                    tool_calls.append(
+                        ToolCall(
+                            call_id=tool_call['call_id'],
+                            function=tool_call['function'],
+                            arguments=tool_call['arguments']
+                        )
+                    )
+            messages.append(
+                role=message['role'],
+                content=message['content'],
+                tool_calls=tool_calls,
+                model=message.get('model', None)
+            )
+        return messages
 
     @property
     def empty(self) -> bool:
-        return not bool(self._messages)
+        return not bool(self)
     
     @property
     def last_message_index(self) -> int:
         if self.empty:
             raise ValueError('No messages!')
-        return len(self._messages)-1
+        return len(self)-1
     
     @property
     def system_prompt(self) -> str | None:
         if self.empty:
             return None
-        message = self._messages[0]
+        message = self[0]
         if message.role == 'system':
             return message.content
         else:
             return None
     
     def as_dict(self) -> List[Dict[str, Any]]:
-        return [m.as_dict() for m in self._messages]
+        return [m.as_dict() for m in self]
 
     def append(self, role: Role, content: str | None, tool_calls: List[ToolCall] = [], model: str | None = None) -> None:
-        self._messages.append(Message(role, content, tool_calls=tool_calls, model=model))
-    
-    def pop(self, i: int = -1, /) -> Message:
-        return self._messages.pop(i)
+        super().append(Message(role, content, tool_calls=tool_calls, model=model))
     
     def to(self, framework: Framework):
-        msgs = [m.to(framework) for m in self._messages]
+        msgs = [m.to(framework) for m in self]
         return [m for m in msgs if m]
     
-    def update(self, i: int, content: str | None = None, tool_calls: List[ToolCall] | None = None) -> None:
-        self._messages[i].update(content, tool_calls)
+    def update(self, i: int, /, content: str | None = None, tool_calls: List[ToolCall] | None = None) -> None:
+        self[i].update(content, tool_calls)
 
-    def edit(self, i: int, content: str | None = None, tool_calls: List[ToolCall] | None = None) -> None:
-        self._messages[i].edit(content, tool_calls)  
+    def edit(self, i: int, /, content: str | None = None, tool_calls: List[ToolCall] | None = None) -> None:
+        self[i].edit(content, tool_calls)  

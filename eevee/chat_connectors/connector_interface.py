@@ -3,7 +3,7 @@ from typing import Generator, List, Dict, Any
 from ..messages import Messages, ToolCall
 
 
-class Bot:
+class Connector:
     INFO_TOKEN = "╬"
     WARNING_TOKEN = "╩"
 

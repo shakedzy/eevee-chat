@@ -2,11 +2,11 @@ import json
 import itertools 
 from openai import OpenAI
 from typing import Generator, List, Dict, Any
-from .bot_interface import Bot
+from .connector_interface import Connector
 from ..messages import ToolCall, Messages
 
 
-class OpenAIBot(Bot):
+class OpenAIConnector(Connector):
     def __init__(self) -> None:
         super().__init__()
         self.client = OpenAI()

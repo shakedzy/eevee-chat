@@ -1,7 +1,9 @@
 import os
 import pathlib
 import gradio as gr
-from typing import List, Tuple, Generator, Set
+from datetime import datetime
+from typing import List, Tuple, Generator, Set, Tuple
+from .saved_chat import SavedChat
 from .chatbot import Chatbot
 from .settings import Settings
 from .utils import path_to_resource
@@ -9,6 +11,8 @@ from ._types import Framework
 
 
 class UI:
+    CHAT_FILE_TIME_FORMAT = "%d/%m/%Y"
+
     def __init__(self, chatbot: Chatbot, available_frameworks: Set[Framework]) -> None:
         self.ui: gr.Blocks | None = None
         self.chatbot = chatbot
@@ -52,9 +56,13 @@ class UI:
             elif chunk.startswith(self.chatbot.WARNING_TOKEN):
                 gr.Warning(chunk.strip(self.chatbot.WARNING_TOKEN))
             else:
-                if history[-1][1] is None:
-                    history[-1][1] = ''
-                history[-1][1] += chunk
+                model_name_separator = "\n\n---\n"
+                chunk, model = chunk.split(self.chatbot.METADATA_TOKEN, 1)
+                current_message: str = history[-1][1] or ''
+                current_message = model_name_separator.join(current_message.split(model_name_separator)[:-1])
+                current_message += chunk
+                current_message += f'{model_name_separator}_{model}_'
+                history[-1][1] = current_message
                 yield history 
 
     def _undo_last_message(self, history: List[List[str]]) -> List[List[str]]:
@@ -68,12 +76,22 @@ class UI:
         self.chatbot.reset_chat()
         return '', []
 
+    def _title_and_time_to_chat_display_name(self, title: str, time: datetime) -> str:
+        return f'{title} ({time.strftime(self.CHAT_FILE_TIME_FORMAT)})'
+
+    def _display_name_to_title_and_time(self, display_name: str) -> Tuple[str, datetime]:
+        pieces = display_name.split(' (')
+        title = ' ('.join(pieces[:-1])
+        time = datetime.strptime(pieces[-1], self.CHAT_FILE_TIME_FORMAT)
+        return title, time
+
     def _save_chat(self) -> None:
         self.chatbot.export_chat()
 
-    def _load_chat(self, filename: str) -> Tuple[None, List[List[str]]]:
+    def _load_chat(self, display_name: str) -> Tuple[None, List[List[str]]]:
         history: List[List[str]] = list()
-        self.chatbot.load_chat(file_path=os.path.join(self.chatbot.saved_chats_dir, filename))
+        title, start_time = self._display_name_to_title_and_time(display_name)
+        self.chatbot.load_chat(title, start_time)
         messages = self.chatbot.get_displayed_messages()
         for message in messages:
             if message.role == 'user':
@@ -84,9 +102,15 @@ class UI:
                 raise ValueError(f"Can't load message with role {message.role}")
         return None, history
     
-    def _delete_chat_file(self, filename: str) -> None:
+    def _delete_chat_file(self, display_name: str) -> None:
+        title, start_time = self._display_name_to_title_and_time(display_name)
+        filename = SavedChat.title_and_time_to_filename(title, start_time)
         file_path = os.path.join(self.chatbot.saved_chats_dir, filename)
         pathlib.Path.unlink(file_path)  # type: ignore
+
+    def _list_saved_chats(self) -> List[str]:
+        saved_chats = self.chatbot.list_saved_chats()
+        return [self._title_and_time_to_chat_display_name(title, time) for (title, time) in saved_chats]
 
     def _build_ui(self) -> gr.Blocks:
         scrollable_checkbox_group_css = """
@@ -123,7 +147,7 @@ class UI:
                     gr.Markdown("Not all models support all options, see documentation for more information")
                     gr.Markdown("------")
                     with gr.Group():
-                        saved_chats = gr.Radio(label="Saved Chats", choices=self.chatbot.list_saved_chats(), elem_classes="files_list", value=None)  # type: ignore
+                        saved_chats = gr.Radio(label="Saved Chats", choices=self._list_saved_chats(), elem_classes="files_list", value=None)  # type: ignore
                         load_chat = gr.Button("Load")
                         delete_chat = gr.Button("Delete", variant='stop')
 
@@ -146,7 +170,7 @@ class UI:
             ).then(
                 lambda: (gr.update(visible=True), gr.update(visible=False)), None, [submit, stop]
             ).then(
-                lambda: gr.update(choices=self.chatbot.list_saved_chats()), None, saved_chats
+                lambda: gr.update(choices=self._list_saved_chats()), None, saved_chats
             )
 
             msg.submit(
@@ -160,14 +184,14 @@ class UI:
             ).then(
                 lambda: (gr.update(visible=True), gr.update(visible=False)), None, [submit, stop]
             ).then(
-                lambda: gr.update(choices=self.chatbot.list_saved_chats()), None, saved_chats
+                lambda: gr.update(choices=self._list_saved_chats()), None, saved_chats
             )
 
             stop.click(self._stop_text_generation)
             undo_last.click(self._undo_last_message, chat, chat).then(self._save_chat)
             new_chat.click(self._start_new_chat, None, [msg, chat])
             load_chat.click(self._start_new_chat, None, [msg, chat]).then(self._load_chat, saved_chats, [saved_chats, chat])
-            delete_chat.click(self._delete_chat_file, saved_chats, None).then(lambda: gr.update(choices=self.chatbot.list_saved_chats()), None, saved_chats)
+            delete_chat.click(self._delete_chat_file, saved_chats, None).then(lambda: gr.update(choices=self._list_saved_chats()), None, saved_chats)
 
         return ui
     

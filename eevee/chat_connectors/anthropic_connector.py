@@ -1,11 +1,11 @@
 from anthropic import Anthropic
 from anthropic._types import NOT_GIVEN
 from typing import List, Generator, Dict, Any
-from .bot_interface import Bot
+from .connector_interface import Connector
 from ..messages import Messages, ToolCall
 
 
-class AnthropicBot(Bot):
+class AnthropicConnector(Connector):
     def __init__(self) -> None:
         super().__init__()
         self.client = Anthropic()
