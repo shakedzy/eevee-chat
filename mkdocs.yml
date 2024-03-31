@@ -1,6 +1,5 @@
 site_name: Eevee Chat
 site_description: A unified chat UI for multiple LLMs
-site_long_description: Eevee is a unified and simple chat UI for working with multiple LLM frameworks in one place.
 site_author: Shaked Zychlinski
 site_url: http://shakedzy.xyz/eevee-chat/
 repo_name: shakedzy/eevee-chat
@@ -28,7 +27,8 @@ theme:
   favicon: images/favicon.png
 nav:
   - Home: 'index.md'
-
+  - Frameworks & Models: 'frameworks.md'
+  - Enable Google Search: 'google_search.md'
 markdown_extensions:
   - toc:
       permalink: true
