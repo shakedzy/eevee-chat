@@ -4,6 +4,8 @@
 
 [![PyPI Version](https://img.shields.io/pypi/v/eevee-chat?style=for-the-badge)](https://pypi.org/project/eevee-chat/)
 [![Python Version](https://img.shields.io/pypi/pyversions/eevee-chat.svg?style=for-the-badge)](https://pypi.org/project/eevee-chat/)
+[![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-green?style=for-the-badge)](https://creativecommons.org/licenses/by-nc/4.0/)
+
 
 Eevee Chat is a unified chat UI for all LLM frameworks. It allows you to use GPT, Claude and many others from the same window, and switch between them even in the middle of a conversation.
 
