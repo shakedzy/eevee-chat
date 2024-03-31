@@ -12,6 +12,7 @@ from .chat_connectors.connector_interface import Connector
 from .chat_connectors.openai_connector import OpenAIConnector
 from .chat_connectors.anthropic_connector import AnthropicConnector
 from .chat_connectors.mistral_connector import MistralConnector
+from .chat_connectors.deepseek_connector import DeepSeekConnector
 from ._types import Framework
 
 
@@ -37,6 +38,8 @@ class Chatbot:
                     client = MistralConnector()
                 case 'anthropic':
                     client = AnthropicConnector()
+                case 'deepseek':
+                    client = DeepSeekConnector()
             self.clients[framework] = client
 
         self.INFO_TOKEN = self.clients[list(self.clients.keys())[0]].INFO_TOKEN

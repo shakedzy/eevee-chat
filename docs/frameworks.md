@@ -10,6 +10,7 @@ The following frameworks are currently supported:
 * OpenAI: `OPENAI_API_KEY`
 * Anthropic: `ANTHROPIC_API_KEY`
 * Mistral: `MISTRAL_API_KEY`
+* DeepSeek: `DEEPSEEK_API_KEY`
 
 To enable them, simply add their API keys under the names above as environment variables. Eevee Chat will detect these on launch.
 

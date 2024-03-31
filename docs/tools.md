@@ -25,7 +25,6 @@ Not all models were trained the same. The table below summarizes some known limi
 Framework | Tool Calling | JSON Forcing
 -|-|-
 OpenAI | ✅ | ✅
-Anthropic| ❌ | ❌
+Anthropic | ❌ | ❌
 Mistral | ✅ | ✅ (Tool calling is not supported when forcing JSON)
-
-
+DeepSeek | ❌ | ❌

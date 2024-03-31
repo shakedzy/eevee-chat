@@ -176,7 +176,7 @@ class UI:
                             system_prompt = gr.TextArea(value="You are a helpful AI assistance, and your task is to assist the user with all its requests in the best possible way", container=False, interactive=True, lines=10)
                         temperature = gr.Slider(label="Temperature", minimum=0., maximum=1., step=.01, value=self.preferences.get('temperature', 0.))
                         force_json = gr.Checkbox(label="Force JSON", value=False, interactive=True)
-                    gr.Markdown("Not all models support all options, see documentation for more information")
+                    gr.Markdown("Not all models support all options, see [documentation](https://shakedzy.xyz/eevee-chat/tools/#known-limitations) for more information")
                     gr.Markdown("\n---\n")
                     with gr.Group():
                         saved_chats = gr.Radio(label="Saved Chats", choices=self._list_saved_chats(), elem_classes="files_list", value=None)  # type: ignore
