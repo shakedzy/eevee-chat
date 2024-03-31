@@ -1,6 +1,4 @@
-<div align='center'>
-    <img src='https://raw.githubusercontent.com/shakedzy/eevee-chat/main/eevee/resources/eevee_150.png'><br />
-</div>
+![banner](https://shakedzy.xyz/eevee-chat/images/wide_banner.png)
 
 # Eevee Chat
 
