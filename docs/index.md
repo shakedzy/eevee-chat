@@ -2,9 +2,7 @@
 is_homepage:
 ---
 
-<div align='center'>
-    <img src='images/eevee_150.png'><br />
-</div>
+![banner](images/social_banner.png)
 
 # Eevee Chat
 
