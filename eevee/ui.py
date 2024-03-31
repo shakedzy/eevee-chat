@@ -8,6 +8,7 @@ from .saved_chat import SavedChat
 from .chatbot import Chatbot
 from .settings import Settings
 from .utils import path_to_resource
+from .messages import ChatMessagePiece
 from ._types import Framework
 
 
@@ -61,26 +62,26 @@ class UI:
     def _add_user_message_to_chat(self, prompt: str, history: List[List[str | None]]) -> Tuple[str, List[List[str | None]]]:
         return '', history + [[prompt, None]]
 
-    def _add_bot_message_to_chat(self, history: List[List[str | None]], model: str, temperature: float, as_json: bool, system_prompt: str) -> Generator:
+    def _add_bot_message_to_chat(self, history: List[List[str | None]], model: str, temperature: float, as_json: bool, system_prompt: str) -> Generator[List[List[str | None]], None, None]:
         self._generate_text = True
         if as_json:
             generator = self.chatbot.get_json_response(history[-1][0] or '', system_prompt=system_prompt, model=model, temperature=temperature)
         else:
             generator = self.chatbot.get_stream_response(history[-1][0] or '', system_prompt=system_prompt, model=model, temperature=temperature)
         
-        for chunk in generator:
+        for chat_piece in generator:
             if not self._generate_text:
                 break
-            if chunk.startswith(self.chatbot.INFO_TOKEN):
-                gr.Info(chunk.strip(self.chatbot.INFO_TOKEN))
-            elif chunk.startswith(self.chatbot.WARNING_TOKEN):
-                gr.Warning(chunk.strip(self.chatbot.WARNING_TOKEN))
-            else:
-                chunk, model = chunk.split(self.chatbot.METADATA_TOKEN, 1)
+            if chat_piece.info_message:
+                gr.Info(chat_piece.info_message)
+            if chat_piece.warning_message:
+                gr.Warning(chat_piece.warning_message)
+            if chat_piece.content:
                 current_message: str = history[-1][1] or ''
                 current_message = self.MODEL_NAME_SEPARATOR.join(current_message.split(self.MODEL_NAME_SEPARATOR)[:-1])
-                current_message += chunk
-                current_message += f'{self.MODEL_NAME_SEPARATOR}_{model}_'
+                current_message += chat_piece.content
+                if chat_piece.model:
+                    current_message += f'{self.MODEL_NAME_SEPARATOR}_{chat_piece.model}_'
                 history[-1][1] = current_message
                 yield history 
 

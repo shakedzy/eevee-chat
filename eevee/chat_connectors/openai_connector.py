@@ -3,15 +3,15 @@ import itertools
 from openai import OpenAI
 from typing import Generator, List, Dict, Any
 from .connector_interface import Connector
-from ..messages import ToolCall, Messages
+from ..messages import ToolCall, Messages, ChatMessagePiece
 
 
 class OpenAIConnector(Connector):
-    def __init__(self) -> None:
+    def __init__(self, api_key: str | None = None, base_url: str | None = None) -> None:
         super().__init__()
-        self.client = OpenAI()
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
 
-    def _tool_calls_from_chunks(self, chunks) -> Generator:
+    def _tool_calls_from_chunks(self, chunks) -> Generator[ChatMessagePiece, None, None]:
         tool_calls = list()
 
         # Build tools_calls from chunks
@@ -32,9 +32,9 @@ class OpenAIConnector(Connector):
                 elif function.arguments is not None:
                     tool_call_dict['arguments'] += function.arguments
         
-        yield [ToolCall(call_id=tool['id'], function=tool['function'], arguments=json.loads(tool['arguments'])) for tool in tool_calls]
+        yield ChatMessagePiece(tool_calls=[ToolCall(call_id=tool['id'], function=tool['function'], arguments=json.loads(tool['arguments'])) for tool in tool_calls])
 
-    def get_streaming_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator[str | List[ToolCall], None, None]:
+    def get_streaming_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator[ChatMessagePiece, None, None]:
         completion = self.client.chat.completions.create(
             model=model,
             temperature=temperature,
@@ -67,10 +67,10 @@ class OpenAIConnector(Connector):
                 # got part of message content
                 token = chunk.choices[0].delta.content
                 if token:
-                    yield token
+                    yield ChatMessagePiece(content=token)
 
     
-    def get_json_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator[str | List[ToolCall], None, None]:
+    def get_json_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator[ChatMessagePiece, None, None]:
         message = self.client.chat.completions.create(
             model=model,
             temperature=temperature,
@@ -83,8 +83,6 @@ class OpenAIConnector(Connector):
             tool_calls: List[ToolCall] = list()
             for tool_call in message.tool_calls:
                 tool_calls.append(ToolCall(call_id=tool_call.id, function=tool_call.function.name, arguments=json.loads(tool_call.function.arguments)))
-            yield tool_calls
-        elif message.content is None:
-            raise RuntimeError('Got empty completion!')
+            yield ChatMessagePiece(tool_calls=tool_calls)
         else:
-            yield message.content       
+            yield ChatMessagePiece(content=message.content)      

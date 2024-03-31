@@ -2,6 +2,7 @@ import re
 import os
 import inspect
 import requests
+from urllib.parse import urlparse
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
@@ -19,6 +20,8 @@ _GOOGLE_SEARCH_CSE_ID = os.environ.get('GOOGLE_SEARCH_CSE_ID', None)
 def handle_tool_error(e: Exception) -> None:
     get_logger().error(f'ERROR [{e.__class__.__name__} in {inspect.stack()[1].function}]: {str(e)}', color='red')
 
+
+### TOOLS ###
 
 def web_search(query: str, max_results: int = 10) -> str:
     """
@@ -101,6 +104,20 @@ def visit_website(url: str) -> str:
         return f"ERROR: {e}"
 
 
+#######
+    
+
+def tool_display_message(tool_name: str, **arguments) -> str:
+    match tool_name:
+        case 'web_search':
+            return f'Searching the web: {arguments["query"]}'
+        case 'visit_website':
+            domain = urlparse(arguments['url']).netloc
+            return f'Visiting website: {domain}'
+        case _:
+            capitalized_name = ' '.join([s.capitalize() for s in tool_name.split(' ')])
+            return f'Running tool: {capitalized_name}'
+            
 
 tools_params_definitions: ToolsDefType = {
     web_search: [("query", {"type": "string", "description": "The query to search on the web"}, True),

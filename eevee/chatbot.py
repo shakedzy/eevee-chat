@@ -3,8 +3,8 @@ import pathlib
 import traceback
 from datetime import datetime
 from typing import Set, Dict, List, Generator, Any, Tuple
-from .messages import Messages, Message, ToolCall
-from .tools import tools_params_definitions
+from .messages import Messages, Message, ToolCall, ChatMessagePiece
+from .tools import tools_params_definitions, tool_display_message
 from .color_logger import get_logger
 from .framework_models import get_model_framework
 from .saved_chat import SavedChat
@@ -17,8 +17,6 @@ from ._types import Framework
 
 
 class Chatbot:
-    METADATA_TOKEN = "$%^"
-
     def __init__(self, available_frameworks: Set[Framework]) -> None:
         if not available_frameworks:
             raise RuntimeError('No available frameworks found! Make sure you supplied API keys')
@@ -41,9 +39,6 @@ class Chatbot:
                 case 'deepseek':
                     client = DeepSeekConnector()
             self.clients[framework] = client
-
-        self.INFO_TOKEN = self.clients[list(self.clients.keys())[0]].INFO_TOKEN
-        self.WARNING_TOKEN = self.clients[list(self.clients.keys())[0]].WARNING_TOKEN
 
     def _build_tools(self) -> List[Dict[str, Any]]:
         tools = list()
@@ -68,7 +63,7 @@ class Chatbot:
                 }
             })
         return tools 
-
+    
     @property
     def saved_chats_dir(self) -> str:
         SAVED_CHATS_DIR = "saved_chats"
@@ -99,7 +94,7 @@ class Chatbot:
             self.messages.edit(0, content=system_prompt)
         self.messages.append('user', prompt)      
 
-    def get_stream_response(self, prompt: str, *, system_prompt: str, model: str, temperature: float) -> Generator[str, None, None]:        
+    def get_stream_response(self, prompt: str, *, system_prompt: str, model: str, temperature: float) -> Generator[ChatMessagePiece, None, None]:        
         framework = get_model_framework(model)
         self._prepare_for_response(prompt=prompt, system_prompt=system_prompt)
 
@@ -108,33 +103,32 @@ class Chatbot:
             while not final_message:
                 final_message = True
                 generator = self.clients[framework].get_streaming_response(model=model, temperature=temperature, messages=self.messages, tools=self.tools)
-                for token in generator:
-                    if isinstance(token, list):
-                        # Only option is list of ToolCall
-                        tool_calls: List[ToolCall] = token
+                for chat_piece in generator:
+                    if chat_piece.tool_calls:
                         final_message = False
                         if self.messages[self.messages.last_message_index].role == 'assistant':
-                            self.messages.update(self.messages.last_message_index, tool_calls=tool_calls)
+                            self.messages.update(self.messages.last_message_index, tool_calls=chat_piece.tool_calls)
                         else:
-                            self.messages.append('assistant', content=None, tool_calls=tool_calls, model=model)
-                        for tool_call in tool_calls:
-                            yield self.INFO_TOKEN + "Running tool: " + tool_call.function
+                            self.messages.append('assistant', content=None, tool_calls=chat_piece.tool_calls, model=model)
+                        for tool_call in chat_piece.tool_calls:
+                            yield ChatMessagePiece(info_message=tool_display_message(tool_call.function, **tool_call.arguments))
                             self.logger.info(f"Running tool {tool_call.function}: {str(tool_call.arguments)}", color='yellow')
                             tool_output = self.callables[tool_call.function](**tool_call.arguments)
                             self.logger.debug("Tool output:\n" + tool_output)
                             self.messages.append(role='tool', content=tool_output, tool_calls=[tool_call])
                     else:
                         if self.messages[self.messages.last_message_index].role == 'assistant':
-                            self.messages.update(self.messages.last_message_index, content=token)
+                            self.messages.update(self.messages.last_message_index, content=chat_piece.content)
                         else:
-                            self.messages.append('assistant', content=token, model=model)
-                        yield token + self.METADATA_TOKEN + model
+                            self.messages.append('assistant', content=chat_piece.content, model=model)
+                        chat_piece.model = model
+                        yield chat_piece
         
         except Exception as e:
             self.logger.error(traceback.format_exc())
-            yield f'❌ _**{e.__class__.__name__}:** {e}_'
+            yield ChatMessagePiece(content=f'❌ _**{e.__class__.__name__}:** {e}_')
 
-    def get_json_response(self, prompt: str, *, system_prompt: str, model: str, temperature: float) -> Generator[str, None, None]:
+    def get_json_response(self, prompt: str, *, system_prompt: str, model: str, temperature: float) -> Generator[ChatMessagePiece, None, None]:
         framework = get_model_framework(model)
         self._prepare_for_response(prompt=prompt, system_prompt=system_prompt)
 
@@ -142,21 +136,20 @@ class Chatbot:
         while not final_message:
             final_message = True
             response = self.clients[framework].get_json_response(model=model, temperature=temperature, messages=self.messages, tools=self.tools)
-            for chunk in response:
-                if isinstance(chunk, list):
-                    # Only option is list of ToolCall
+            for chat_piece in response:
+                if chat_piece.tool_calls:
                     final_message = False
-                    tool_calls: List[ToolCall] = chunk
-                    self.messages.append(role='assistant', content=None, tool_calls=tool_calls, model=model)
-                    for tool_call in tool_calls:
-                        yield self.INFO_TOKEN + "Running tool: "  + tool_call.function
+                    self.messages.append(role='assistant', content=None, tool_calls=chat_piece.tool_calls, model=model)
+                    for tool_call in chat_piece.tool_calls:
+                        yield ChatMessagePiece(info_message=tool_display_message(tool_call.function, **tool_call.arguments))
                         self.logger.info(f"Running tool {tool_call.function}: {str(tool_call.arguments)}", color='yellow')
                         tool_output = self.callables[tool_call.function](**tool_call.arguments)
                         self.logger.debug("Tool output:\n" + tool_output)
                         self.messages.append(role='tool', content=tool_output, tool_calls=[tool_call])
                 else:
-                    self.messages.append(role='assistant', content=chunk, model=model)
-                    yield chunk + self.METADATA_TOKEN + model
+                    self.messages.append(role='assistant', content=chat_piece.content, model=model)
+                    chat_piece.model = model
+                    yield chat_piece
 
     def export_chat(self) -> None:
         SavedChat(messages=self.messages, start_time=self.start_time, directory=self.saved_chats_dir).save_to_file()

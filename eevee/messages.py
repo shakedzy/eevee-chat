@@ -1,6 +1,6 @@
 import json
-from typing import List, Dict, Any, Generator
-from dataclasses import dataclass
+from typing import List, Dict, Any
+from dataclasses import dataclass, asdict
 from mistralai.models.chat_completion import ChatMessage as MistralChatMessage, ToolCall as MistralToolCall, FunctionCall as MistralFunctionCall
 from ._types import Role, Framework
 
@@ -10,16 +10,19 @@ class ToolCall:
     call_id: str
     function: str
     arguments: Dict[str, Any]
-
-    def __str__(self) -> str:
-        return f"{self.function}: {json.dumps(self.arguments)}"
     
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            'call_id': self.call_id,
-            'function': self.function,
-            'arguments': self.arguments
-        }
+    as_dict = asdict
+
+
+@dataclass
+class ChatMessagePiece:
+    content: str | None = None
+    info_message: str | None = None
+    warning_message: str | None = None
+    model: str | None = None
+    tool_calls: List[ToolCall] | None = None
+
+    as_dict = asdict
 
 
 class Message:

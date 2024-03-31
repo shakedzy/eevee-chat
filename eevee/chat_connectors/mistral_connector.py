@@ -4,7 +4,7 @@ from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ToolCall as MistralToolCall
 from typing import List, Generator, Dict, Any
 from .connector_interface import Connector
-from ..messages import Messages, ToolCall
+from ..messages import Messages, ToolCall, ChatMessagePiece
 
 
 class MistralConnector(Connector):
@@ -12,7 +12,7 @@ class MistralConnector(Connector):
         self.supports_json_response = True
         self.client = MistralClient()
 
-    def _tool_calls_from_chunks(self, chunks) -> Generator[List[ToolCall], None, None]:
+    def _tool_calls_from_chunks(self, chunks) -> Generator[ChatMessagePiece, None, None]:
         tool_calls = list()
         for chunk in chunks:
             mistral_tool_calls: List[MistralToolCall] = chunk.choices[0].delta.tool_calls
@@ -22,9 +22,9 @@ class MistralConnector(Connector):
                     function=t.function.name,
                     arguments=json.loads(t.function.arguments)
                 ))
-        yield tool_calls
+        yield ChatMessagePiece(tool_calls=tool_calls)
 
-    def get_streaming_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator:
+    def get_streaming_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator[ChatMessagePiece, None, None]:
         response = self.client.chat_stream(
             model=model, 
             temperature=temperature,
@@ -55,11 +55,11 @@ class MistralConnector(Connector):
                 # got part of message content
                 token = chunk.choices[0].delta.content
                 if token:
-                    yield token
+                    yield ChatMessagePiece(content=token)
         
-    def get_json_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator[str | List[ToolCall], None, None]:
+    def get_json_response(self, model: str, temperature: float, messages: Messages, tools: List[Dict[str, Any]]) -> Generator[ChatMessagePiece, None, None]:
         if tools:
-            yield self.WARNING_TOKEN + "Mistral models do not support tools when forcing JSON response"
+            yield ChatMessagePiece(warning_message="Mistral models do not support tools when forcing JSON response")
         
         response = self.client.chat(
             model=model, 
@@ -70,4 +70,4 @@ class MistralConnector(Connector):
         content = response.choices[0].message.content
         if isinstance(content, list):
             content = ' '.join(content)
-        yield content
+        yield ChatMessagePiece(content=content)

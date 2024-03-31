@@ -28,4 +28,9 @@ Once installed (and after frameworks were setup), simply run:
 ```bash
 eevee
 ```
-Eevee Chat will automatically launch on `127.0.0.1:4242` by default.
+Eevee Chat will automatically launch on `127.0.0.1:4242` by default. 
+
+To change the port, run:
+```bash
+eevee -p [port]
+```

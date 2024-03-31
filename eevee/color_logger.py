@@ -3,7 +3,7 @@ from types import TracebackType
 from typing import Mapping, Dict
 from ._types import Color
 
-_DEFAULT_LOG_LEVEL = logging.INFO
+_DEFAULT_LOG_LEVEL = "INFO"
 _DEFAULT_LOGGER_NAME = "root"
 
 
@@ -60,5 +60,10 @@ class ColorLogger(logging.Logger):
         return super().critical(msg, *args, exc_info=exc_info, stack_info=stack_info, stacklevel=stacklevel, extra=extra)
     
 
-def get_logger(name: str| None = None, level: str | int | None = None):
+def get_logger(name: str| None = None, level: str | int | None = None) -> ColorLogger:
     return ColorLogger(name or _DEFAULT_LOGGER_NAME, level=level or _DEFAULT_LOG_LEVEL)
+
+
+def change_default_log_level(level: str | int) -> None:
+    global _DEFAULT_LOG_LEVEL
+    _DEFAULT_LOG_LEVEL = level
