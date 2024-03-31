@@ -5,10 +5,11 @@ from setuptools import setup, find_packages
 HERE = pathlib.Path(__file__).parent.resolve()
 
 PACKAGE_NAME = "eevee"
+SETUP_NAME = "eevee-chat"
 AUTHOR = "Shaked Zychlinski"
 AUTHOR_EMAIL = "shakedzy@gmail.com"
-URL = "http://shakedzy.xyz/eevee-chat"
-DOWNLOAD_URL = "https://pypi.org/project/eevee-chat/"
+URL = f"http://shakedzy.xyz/{SETUP_NAME}"
+DOWNLOAD_URL = f"https://pypi.org/project/{SETUP_NAME}/"
 
 LICENSE = "CC BY-NC 4.0"
 VERSION = (HERE / "VERSION").read_text(encoding="utf8").strip()
@@ -19,13 +20,15 @@ LONG_DESC_TYPE = "text/markdown"
 requirements = (HERE / "requirements.txt").read_text(encoding="utf8")
 INSTALL_REQUIRES = [s.strip() for s in requirements.split("\n")]
 
+MIN_PYTHON_MINOR = 11
+MAX_PYTHON_MINOR = 12
 CLASSIFIERS = [
-    f"Programming Language :: Python :: 3.{str(v)}" for v in range(11, 13)
+    f"Programming Language :: Python :: 3.{str(v)}" for v in range(MIN_PYTHON_MINOR, MAX_PYTHON_MINOR+1)
 ]
-PYTHON_REQUIRES = ">=3.11"
+PYTHON_REQUIRES = f">=3.{str(MIN_PYTHON_MINOR)}"
 
 setup(
-    name=PACKAGE_NAME,
+    name=SETUP_NAME,
     version=VERSION,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
@@ -41,5 +44,10 @@ setup(
     classifiers=CLASSIFIERS,
     package_data={
         PACKAGE_NAME: ['resources/*'],  
+    },
+    entry_points={
+        'console_scripts': [
+            f'eevee = {PACKAGE_NAME}._run:main'
+        ]
     }
 )

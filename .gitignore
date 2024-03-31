@@ -3,4 +3,7 @@
 .vscode*
 *__pycache__*
 *.egg-info*
+
 *saved_chats*
+keys.toml
+pref.json

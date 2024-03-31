@@ -1,8 +1,9 @@
 import os
+import json
 import pathlib
 import gradio as gr
 from datetime import datetime
-from typing import List, Tuple, Generator, Set, Tuple
+from typing import List, Tuple, Generator, Set, Tuple, Dict, Any
 from .saved_chat import SavedChat
 from .chatbot import Chatbot
 from .settings import Settings
@@ -14,20 +15,38 @@ class UI:
     CHAT_FILE_TIME_FORMAT = "%d/%m/%Y, %H:%M:%S"
     MODEL_NAME_SEPARATOR = "\n\n🤖 "
 
-    def __init__(self, chatbot: Chatbot, available_frameworks: Set[Framework]) -> None:
+    def __init__(self, chatbot: Chatbot, available_frameworks: Set[Framework], port: int) -> None:
         self.ui: gr.Blocks | None = None
         self.chatbot = chatbot
         self.available_frameworks = available_frameworks
         self._generate_text = True
+        self.preferences: Dict[str, Any] = dict()
+        self.port: int = port
 
     def __enter__(self) -> gr.Blocks:
+        self.preferences = self._load_preferences_from_file()
         self.ui = self._build_ui()
-        self.ui.launch(favicon_path=path_to_resource("eevee_50.png"), inbrowser=True, show_error=True)
+        self.ui.launch(favicon_path=path_to_resource("eevee_50.png"), inbrowser=True, show_error=True, server_port=self.port)
         return self.ui
 
     def __exit__(self, *args) -> None:
         if self.ui:
             self.ui.close()
+            with open(self.preferences_file_path, 'w') as f:
+                json.dump(self.preferences, f)
+
+    @property
+    def preferences_file_path(self) -> str:
+        filename = "pref.json"
+        current_dir = pathlib.Path(__file__).parent.resolve()
+        return os.path.join(current_dir, filename)
+
+    def _load_preferences_from_file(self) -> Dict[str, Any]:
+        try:
+            with open(self.preferences_file_path, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
 
     def _get_list_of_models(self) -> List[Tuple[Framework, str]]:
         available_models: List[Tuple[Framework, str]] = list()
@@ -138,10 +157,9 @@ class UI:
         available_models = self._get_list_of_models()
         available_models = [(f'{self._display_name_of_framework(framework)}: {model}', model) for (framework, model) in available_models]
         available_models = sorted(available_models, key=lambda t: t[0])
-        preferred_model = Settings().defaults.model
+        preferred_model = self.preferences.get('model', '')
         if preferred_model not in [t[1] for t in available_models]:
-            preferred_model = available_models[0][1]
-        preferred_temperature = min(1., max(0., Settings().defaults.temperature))
+            self.preferences['model'] = available_models[0][1]
 
         with gr.Blocks(title="Eevee Chat", css=scrollable_checkbox_group_css, theme=gr.themes.Base()) as ui:
             with gr.Row():
@@ -153,10 +171,10 @@ class UI:
             with gr.Row():
                 with gr.Column(scale=1, variant='panel'):
                     with gr.Group():
-                        model = gr.Dropdown(label="Model", interactive=True, choices=available_models, value=preferred_model)  # type: ignore
+                        model = gr.Dropdown(label="Model", interactive=True, choices=available_models, value=self.preferences['model'])  # type: ignore
                         with gr.Accordion(label="System Prompt", open=False):
                             system_prompt = gr.TextArea(value="You are a helpful AI assistance named Bruno, and your task is to assist the user with all its requests in the best way possible", container=False, interactive=True, lines=10)
-                        temperature = gr.Slider(label="Temperature", minimum=0., maximum=1., step=.01, value=preferred_temperature)
+                        temperature = gr.Slider(label="Temperature", minimum=0., maximum=1., step=.01, value=self.preferences.get('temperature', 0.))
                         force_json = gr.Checkbox(label="Force JSON", value=False, interactive=True)
                     gr.Markdown("Not all models support all options, see documentation for more information")
                     gr.Markdown("\n---\n")
@@ -206,6 +224,11 @@ class UI:
             new_chat.click(self._start_new_chat, None, [msg, chat])
             load_chat.click(self._start_new_chat, None, [msg, chat]).then(self._load_chat, saved_chats, [saved_chats, chat])
             delete_chat.click(self._delete_chat_file, saved_chats, None).then(lambda: gr.update(choices=self._list_saved_chats()), None, saved_chats)
+
+            def __update_pref_model(model: str) -> None: self.preferences['model'] = model
+            def __update_pref_temperature(temperature: float) -> None: self.preferences['temperature'] = temperature
+            model.change(__update_pref_model, model, None)
+            temperature.change(__update_pref_temperature, temperature, None)
 
         return ui
     

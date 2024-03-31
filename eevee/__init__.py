@@ -1,28 +1,8 @@
-from textwrap import dedent
-from .ui import UI
-from .chatbot import Chatbot
-from .settings import init_settings
-from .framework_models import get_available_frameworks
+def _get_version_from_setuptools():
+    from pkg_resources import get_distribution
+
+    return get_distribution("eevee-chat").version
 
 
-def ascii_art():
-    art = dedent(
-        """
-                                     
-        ,------.                              
-        |  .---' ,---.,--.  ,--.,---.  ,---.  
-        |  `--, | .-. :\  `'  /| .-. :| .-. : 
-        |  `---.\   --. \    / \   --.\   --. 
-        `------' `----'  `--'   `----' `----'                                
-
-        """)
-    print(art)
-
-
-def run():
-    ascii_art()
-    init_settings(['config.toml'])
-    available_frameworks = get_available_frameworks()
-    chatbot = Chatbot(available_frameworks)
-    with UI(chatbot, available_frameworks):
-        pass
+__all__ = ["__version__"]
+__version__ = _get_version_from_setuptools()
