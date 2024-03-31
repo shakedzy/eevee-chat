@@ -1,6 +1,6 @@
-<center>
+<div align='center'>
     <img src='https://raw.githubusercontent.com/shakedzy/eevee-chat/main/eevee/resources/eevee_150.png'><br />
-</center>
+</div>
 
 # Eevee Chat
 Eevee Chat is a unified chat UI for all LLM frameworks. It allows you to use GPT, Claude and many others from the same window, and switch between them even in the middle of a conversation.
