@@ -26,7 +26,7 @@ def ascii_art():
 def main():
     parser = ArgumentParser(description="Eevee Chat run-time arguments")
     parser.add_argument('-p', '--port', dest='port', default=4242, type=int, help='Port to run from', required=False)
-    parser.add_argument('--version', help='Show version', dest='show_version', type=str, default=False, action='store_true')
+    parser.add_argument('--version', help='Show version', dest='show_version', default=False, action='store_true')
     args = parser.parse_args()
 
     if args.show_version:
@@ -34,7 +34,7 @@ def main():
 
     else:
         ascii_art()
-        get_logger.info(f"Running version: {__version__}")
+        get_logger().info(f"Running version: {__version__}")
         init_settings(['../config.toml'])
         available_frameworks = get_available_frameworks()
         chatbot = Chatbot(available_frameworks)
