@@ -4,6 +4,9 @@
 *__pycache__*
 *.egg-info*
 
+build*
+dist*
+
 *saved_chats*
 keys.toml
 pref.json
