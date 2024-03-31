@@ -3,6 +3,10 @@
 </div>
 
 # Eevee Chat
+
+[![PyPI Version](https://img.shields.io/pypi/v/eevee-chat?style=for-the-badge)](https://pypi.org/project/eevee-chat/)
+[![Python Version](https://img.shields.io/pypi/pyversions/eevee-chat.svg?style=for-the-badge)](https://pypi.org/project/eevee-chat/)
+
 Eevee Chat is a unified chat UI for all LLM frameworks. It allows you to use GPT, Claude and many others from the same window, and switch between them even in the middle of a conversation.
 
 Using Eevee is simple and intuitive. LLMs are connected to the web (supporting LLMs only) with either Google Search or DuckDuckGo, and so it suppose to mimic working with the official web apps.
