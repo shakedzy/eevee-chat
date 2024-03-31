@@ -173,7 +173,7 @@ class UI:
                     with gr.Group():
                         model = gr.Dropdown(label="Model", interactive=True, choices=available_models, value=self.preferences['model'])  # type: ignore
                         with gr.Accordion(label="System Prompt", open=False):
-                            system_prompt = gr.TextArea(value="You are a helpful AI assistance named Bruno, and your task is to assist the user with all its requests in the best way possible", container=False, interactive=True, lines=10)
+                            system_prompt = gr.TextArea(value="You are a helpful AI assistance, and your task is to assist the user with all its requests in the best possible way", container=False, interactive=True, lines=10)
                         temperature = gr.Slider(label="Temperature", minimum=0., maximum=1., step=.01, value=self.preferences.get('temperature', 0.))
                         force_json = gr.Checkbox(label="Force JSON", value=False, interactive=True)
                     gr.Markdown("Not all models support all options, see documentation for more information")
