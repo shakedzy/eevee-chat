@@ -1,9 +1,10 @@
 # Change Log
 
-## 0.0.2 _dev_
+## 0.0.2 (_post1_)
 * Add DeepSeek integration
 * Added logging-level selection
 * Some refactoring
+* Fixing bugs
 
 ## 0.0.1 (_post1_)
 * First version of Eevee Chat

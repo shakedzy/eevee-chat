@@ -1,6 +1,5 @@
 import os
 import json
-import pathlib
 import gradio as gr
 from datetime import datetime
 from typing import List, Tuple, Generator, Set, Tuple, Dict, Any
@@ -8,8 +7,8 @@ from .saved_chat import SavedChat
 from .chatbot import Chatbot
 from .settings import Settings
 from .utils import path_to_resource
-from .messages import ChatMessagePiece
 from ._types import Framework
+from . import ROOT_DIR
 
 
 class UI:
@@ -39,8 +38,7 @@ class UI:
     @property
     def preferences_file_path(self) -> str:
         filename = "pref.json"
-        current_dir = pathlib.Path(__file__).parent.resolve()
-        return os.path.join(current_dir, filename)
+        return os.path.join(ROOT_DIR, filename)
 
     def _load_preferences_from_file(self) -> Dict[str, Any]:
         try:

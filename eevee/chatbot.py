@@ -1,9 +1,8 @@
 import os
-import pathlib
 import traceback
 from datetime import datetime
 from typing import Set, Dict, List, Generator, Any, Tuple
-from .messages import Messages, Message, ToolCall, ChatMessagePiece
+from .messages import Messages, Message, ChatMessagePiece
 from .tools import tools_params_definitions, tool_display_message
 from .color_logger import get_logger
 from .framework_models import get_model_framework
@@ -14,6 +13,7 @@ from .chat_connectors.anthropic_connector import AnthropicConnector
 from .chat_connectors.mistral_connector import MistralConnector
 from .chat_connectors.deepseek_connector import DeepSeekConnector
 from ._types import Framework
+from . import ROOT_DIR
 
 
 class Chatbot:
@@ -67,8 +67,7 @@ class Chatbot:
     @property
     def saved_chats_dir(self) -> str:
         SAVED_CHATS_DIR = "saved_chats"
-        current_dir = pathlib.Path(__file__).parent.resolve()
-        directory = os.path.join(current_dir, SAVED_CHATS_DIR)
+        directory = os.path.join(ROOT_DIR, SAVED_CHATS_DIR)
         if not os.path.exists(directory):
             os.makedirs(directory)
         return directory
