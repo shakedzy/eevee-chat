@@ -488,12 +488,16 @@
 <li>Anthropic: <code>ANTHROPIC_API_KEY</code></li>
 <li>Mistral: <code>MISTRAL_API_KEY</code></li>
 <li>DeepSeek: <code>DEEPSEEK_API_KEY</code></li>
+<li>Google: <code>GOOGLE_API_KEY</code></li>
 </ul>
 <p>To enable them, simply add their API keys under the names above as environment variables. Eevee Chat will detect these on launch.</p>
 <h3 id="supported-models">Supported Models<a class="headerlink" href="#supported-models" title="Permanent link">&para;</a></h3>
 <p>Technically, all chat models of the supported frameworks are also supported. Still,a s there are many models, only the most common ones were added
 to Eevee. If the model you're looking for is not on the list, simply open the <code>config.toml</code> file found under Eevee's installation folder, and add it
 to the relevant list under <code>[models]</code>.</p>
+<p>You can locate the <code>config.toml</code> file by running:
+<div class="highlight"><pre><span></span><code>eevee<span class="w"> </span>--config-path
+</code></pre></div></p>
 
 
 
