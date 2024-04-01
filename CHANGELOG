@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.0.3 
+* Added Google Gemini integration
+* Added models aliases
+* Fixing bugs
+
 ## 0.0.2 (_post1_)
 * Add DeepSeek integration
 * Added logging-level selection

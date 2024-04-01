@@ -69,11 +69,15 @@ class Message:
     
     def to(self, framework: Framework):
         match framework:
-            case 'openai':
+            case 'openai' | 'deepseek':
                 if self.role == 'tool':
+                    if framework == 'deepseek':
+                        return None
                     tool_call_id = self.tool_calls[0].call_id
                     tool_calls = None
                 elif self.tool_calls:
+                    if framework == 'deepseek':
+                        return None
                     tool_call_id = None
                     tool_calls = list()
                     for tool_call in self.tool_calls:
@@ -96,13 +100,9 @@ class Message:
                 return message
             
             case 'anthropic':
-                if self.role == 'system':
+                if self.role in ['system', 'tool'] or self.tool_calls:
                     return None
                 message = {'role': self.role, 'content': self.content}
-                if not message['content'] and self.tool_calls:
-                    message['content'] = f"Executing functions: [{', '.join([str(t) for t in self.tool_calls])}]"
-                elif message['role'] == 'tool':
-                    message['role'] = 'user'
                 return message
 
             case 'mistral':
@@ -121,6 +121,17 @@ class Message:
                     message = MistralChatMessage(role=self.role, content=self.content or '', tool_calls=mistral_tool_calls)
                 return message
 
+            case 'google':
+                if self.role in ['system', 'tool'] or self.tool_calls:
+                    return None
+                google_role: str = self.role
+                if google_role == 'assistant':
+                    google_role = 'model'
+                message = {'role': google_role, 'parts': [self.content]}
+                return message
+
+            case _:
+                raise ValueError(f"Can't convert messages to framework {framework}")
 
 class Messages(list[Message]):
     def __init__(self, *args) -> None:

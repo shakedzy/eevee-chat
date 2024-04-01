@@ -33,7 +33,7 @@ Eevee Chat will automatically launch on `127.0.0.1:4242` by default.
 
 - [ ] Code interpreter
 - [x] DeepSeek integration
-- [ ] Google Gemini integration
+- [x] Google Gemini integration
 - [ ] Add files as text
 - [ ] Add images to multi-modal models
- 
+- [ ] Enable speech-to-text as input

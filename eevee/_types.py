@@ -3,7 +3,14 @@ from typing import Literal, TypeAlias, Dict, Callable, List, Tuple, Any
 
 ToolsDefType: TypeAlias = Dict[Callable, List[Tuple[str, Dict[str, Any], bool]]]
 Role: TypeAlias = Literal['user', 'assistant', 'tool', 'system']
-Framework: TypeAlias = Literal['openai', 'anthropic', 'mistral', 'deepseek']
+
+Framework: TypeAlias = Literal[
+    'openai', 
+    'anthropic', 
+    'mistral', 
+    'deepseek',
+    'google'
+]
 
 Color: TypeAlias = Literal[
     "red",

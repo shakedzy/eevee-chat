@@ -1,5 +1,6 @@
 import os
 import json
+import pathlib
 import gradio as gr
 from datetime import datetime
 from typing import List, Tuple, Generator, Set, Tuple, Dict, Any
@@ -7,8 +8,8 @@ from .saved_chat import SavedChat
 from .chatbot import Chatbot
 from .settings import Settings
 from .utils import path_to_resource
+from .framework_models import get_model_name_and_alias
 from ._types import Framework
-from . import ROOT_DIR
 
 
 class UI:
@@ -37,8 +38,7 @@ class UI:
 
     @property
     def preferences_file_path(self) -> str:
-        filename = "pref.json"
-        return os.path.join(ROOT_DIR, filename)
+        return path_to_resource("pref.json")
 
     def _load_preferences_from_file(self) -> Dict[str, Any]:
         try:
@@ -47,11 +47,12 @@ class UI:
         except:
             return {}
 
-    def _get_list_of_models(self) -> List[Tuple[Framework, str]]:
-        available_models: List[Tuple[Framework, str]] = list()
+    def _get_list_of_models_and_display_names(self) -> List[Tuple[str, str]]:
+        available_models: List[Tuple[str, str]] = list()
         for framework in self.available_frameworks:
             models: List[str] = Settings().models[framework]
-            available_models += [(framework, model) for model in models]
+            models_and_aliases: List[Tuple[str, str | None]] = [get_model_name_and_alias(m) for m in models]
+            available_models += [(model, f'{self._display_name_of_framework(framework)}: {alias or model}') for model, alias in models_and_aliases]
         return available_models
     
     def _stop_text_generation(self) -> None:
@@ -153,8 +154,8 @@ class UI:
                 scrollbar-width: thin !important;
             }  
         """
-        available_models = self._get_list_of_models()
-        available_models = [(f'{self._display_name_of_framework(framework)}: {model}', model) for (framework, model) in available_models]
+        available_models = self._get_list_of_models_and_display_names()
+        available_models = [(display_name, model) for (model, display_name) in available_models]
         available_models = sorted(available_models, key=lambda t: t[0])
         preferred_model = self.preferences.get('model', '')
         if preferred_model not in [t[1] for t in available_models]:
@@ -168,7 +169,7 @@ class UI:
                     new_chat = gr.Button("New Chat")
             
             with gr.Row():
-                with gr.Column(scale=1, variant='panel'):
+                with gr.Column(scale=2, variant='panel'):
                     with gr.Group():
                         model = gr.Dropdown(label="Model", interactive=True, choices=available_models, value=self.preferences['model'])  # type: ignore
                         with gr.Accordion(label="System Prompt", open=False):

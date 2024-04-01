@@ -12,6 +12,7 @@ from .chat_connectors.openai_connector import OpenAIConnector
 from .chat_connectors.anthropic_connector import AnthropicConnector
 from .chat_connectors.mistral_connector import MistralConnector
 from .chat_connectors.deepseek_connector import DeepSeekConnector
+from .chat_connectors.google_connector import GoogleConnector
 from ._types import Framework
 from . import ROOT_DIR
 
@@ -38,6 +39,10 @@ class Chatbot:
                     client = AnthropicConnector()
                 case 'deepseek':
                     client = DeepSeekConnector()
+                case 'google':
+                    client = GoogleConnector()
+                case _:
+                    raise ValueError(f'No connector defined for framework {framework}!')
             self.clients[framework] = client
 
     def _build_tools(self) -> List[Dict[str, Any]]:

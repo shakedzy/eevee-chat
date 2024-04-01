@@ -22,9 +22,10 @@ Power-ups are usually available only to developers as part of the API functional
 ## Known Limitations
 Not all models were trained the same. The table below summarizes some known limitations of the supported frameworks:
 
-Framework | Tool Calling | JSON Forcing
--|-|-
-OpenAI | ✅ | ✅
-Anthropic | ❌ | ❌
-Mistral | ✅ | ✅ (Tool calling is not supported when forcing JSON)
-DeepSeek | ❌ | ❌
+Framework | System Prompt | Tool Calling | JSON Forcing
+-|-|-|-
+OpenAI | ✅ | ✅ | ✅
+Anthropic | ✅ | ❌ | ❌
+Mistral | ✅ | ✅ | ⚠️ (Tool calling is not supported when forcing JSON)
+DeepSeek | ✅ | ❌ | ❌
+Google | ❌ | ❌ | ❌

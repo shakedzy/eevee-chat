@@ -11,3 +11,6 @@ site*
 *saved_chats*
 keys.toml
 pref.json
+
+debug.py
+*.ipynb
